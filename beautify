@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 for x in *.rs; do
-	rustc $x --pretty > ${x}_pretty
-	if (! diff -q ${x} ${x}_pretty); then
-		#echo "beautify: cleaning up ${x}..."
-		mv ${x}_pretty ${x}
+	if ( rustc $x --pretty > ${x}_pretty ); then
+		if (! diff -q ${x} ${x}_pretty); then
+			echo "beautify: cleaning up ${x}..."
+			mv ${x}_pretty ${x}
+		fi
 	fi
 	rm -f ${x}_pretty
 done

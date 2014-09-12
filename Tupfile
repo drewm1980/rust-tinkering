@@ -1,4 +1,4 @@
 .gitignore
-!rc = |> rustc %f |>
+!rc = |> rustc %f |> %B
 
 : foreach *.rs |> !rc |>
