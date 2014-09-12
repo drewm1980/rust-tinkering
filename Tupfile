@@ -1,0 +1,4 @@
+
+!rc = |> rustc %i |>
+
+: foreach *.rs |> !rc |>
