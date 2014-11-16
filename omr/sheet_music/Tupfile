@@ -1,5 +1,0 @@
-.gitignore
-
-!topng = |> convert %f %B.png |> %B.png
-
-: foreach *.gif |> !topng |>
