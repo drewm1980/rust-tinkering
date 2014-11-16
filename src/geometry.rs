@@ -44,7 +44,7 @@ fn dist(s1:&Shape, s2:&Shape){
 
 
 fn main() {
-    let origin = Point{x:0.0,y:0.0};
+    let origin = Point{x: 0.0, y: 0.0,};
     let p1 = Point{x: 0.0, y: 3.0,};
     let p2 = Point{x: 4.0, y: 0.0,};
     let d = point_distance(&p1, &p2);
@@ -54,8 +54,8 @@ fn main() {
     let d = point_distance(p3, &p2);
     println!("d = {}" , d);
 
-    let c = Circle{center:p1, r:10.0};
+    let c = Circle{center: p1, r: 10.0,};
     let t = Triangle(p1, p1, p2);
-    let bar: (Point,Point,Point);
+    let bar: (Point, Point, Point);
 
 }
