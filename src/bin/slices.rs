@@ -92,6 +92,19 @@ mod test {
         let a:Vec<int> = vec![1,2,3];
         let r = super::slice_out_first_two_nested(a.as_slice());
         println!("{}",r.len());
+        //assert!(r.len==2); // len is a uint, but private
+        assert!(r.len()==2);
+        assert!(r[0]==1);
+        assert!(r[1]==2);
+
+    }
+
+    #[test]
+    fn slices_mutable () {
+        let mut a:Vec<int> = vec![1,2,3];
+        let r = super::slice_out_first_two_nested(a.as_slice());
+        println!("{}",r.len());
+        //assert!(r.len==2); // len is a uint, but private
         assert!(r.len()==2);
         assert!(r[0]==1);
         assert!(r[1]==2);
