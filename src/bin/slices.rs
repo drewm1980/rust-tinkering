@@ -12,6 +12,10 @@ fn slice_out_first_two<T> (s: &[T]) -> &[T]{
     s.slice(0,2)
 }
 
+fn slice_out_first_two_nested<T> (s: &[T]) -> &[T]{
+    slice_out_first_two(s)
+}
+
 fn main() {
 }
 
@@ -81,5 +85,16 @@ mod test {
         assert!(r2.len()==2);
         assert!(r2[0]==1);
         assert!(r2[1]==2);
+    }
+
+    #[test]
+    fn slices_nested_functions () {
+        let a:Vec<int> = vec![1,2,3];
+        let r = super::slice_out_first_two_nested(a.as_slice());
+        println!("{}",r.len());
+        assert!(r.len()==2);
+        assert!(r[0]==1);
+        assert!(r[1]==2);
+
     }
 }
