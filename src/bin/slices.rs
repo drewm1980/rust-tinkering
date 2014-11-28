@@ -75,5 +75,11 @@ mod test {
         assert!(r.len()==2);
         assert!(r[0]==1);
         assert!(r[1]==2);
+
+        let r2 = super::slice_out_first_two(r);
+        println!("{}",r2.len());
+        assert!(r2.len()==2);
+        assert!(r2[0]==1);
+        assert!(r2[1]==2);
     }
 }
