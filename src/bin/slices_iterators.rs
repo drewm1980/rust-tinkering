@@ -1,35 +1,60 @@
 use std::raw::Slice;
-use std::mem::transmute;
+use std::mem::{transmute, size_of};
+use std::num::Int;
 
 /// Splice together to slices of the same type that are contiguous in memory.
 /// Panics if the slices aren't contiguous with "a" coming first.
+/// Also panics in some improbable cases of arrays so large they overflow int.
 /// i.e. slice b must follow slice a immediately in memory.
-fn splice<'a>(a:&'a[u8], b:&'a[u8]) -> &'a[u8] {
+fn splice<'a, T>(a: &'a [T], b: &'a [T]) -> &'a [T] {
     unsafe {
-        let aa:Slice<u8> = transmute(a);
-        let bb:Slice<u8> = transmute(b);
-        let pa = aa.data as *const u8;
-        let pb = bb.data as *const u8;
-        let off = aa.len as int; // Risks overflow into negative!!!
-        assert!(pa.offset(off) == pb, "Slices were not contiguous!");
-        let cc = Slice{data:aa.data,len:aa.len+bb.len};
-        transmute(cc)
+        let aa: Slice<T> = transmute(a);
+        let bb: Slice<T> = transmute(b);
+        if size_of::<T>() == 0 {
+            // Support for slices of zero-sized types
+            transmute(Slice{data: &(),
+                            len: aa.len.checked_add(bb.len)
+    .expect("Integer overflow in slice size: Arrays are too big to splice!")})
+        } else {
+            // The common case of nonzero-sized slices.
+            let pa = aa.data as *const T;
+            let pb = bb.data as *const T;
+            let off = aa.len.to_int().expect("Integer overflow in slice size:");
+            // To actually hit the above case
+            //let off = aa.len as int;
+            assert!(pa . offset ( off ) == pb ,
+                    "Slices were not contiguous!");
+            // We presumably don't need to worry about length
+            // overflow here since the two passed consecutive slices
+            // presumably already fit in memory.
+            let cc = Slice{data: aa.data, len: aa.len + bb.len,};
+            transmute(cc)
+        }
     }
 }
 
 /// Wrapper around splice that lets you use None as a base case for fold
 /// Will panic if the slices cannot be spliced!  See splice.
-fn splice_for_fold<'a>(oa:Option<&'a[u8]>, b:&'a[u8]) -> Option<&'a[u8]> {
+fn splice_for_fold<'a,T>(oa:Option<&'a[T]>, b:&'a[T]) -> Option<&'a[T]> {
    match oa {
        Some(a) => Some(splice(a,b)),
        None => Some(b),
    }
 }
 
+/// Implementaton using pure iterators
+fn take_while1<'a,T>(initial: &'a [T], 
+                   predicate: |&T| -> bool) -> Option<&'a [T]> {
+    initial
+        .chunks(1)
+        .take_while(|x|(predicate(&x[0])))
+        .fold(None, splice_for_fold)
+}
+
 /// A C style implementation of take_while for slices.
 /// This implementation does NOT return another iterator!
 /// Returns None if none of the initial elements of the slice satisfy the predicate.
-fn take_while1<'a>(initial: &'a [u8], predicate: |&u8| -> bool) -> Option<&'a [u8]> { // '
+fn take_while2<'a,T>(initial: &'a [T], predicate: |&T| -> bool) -> Option<&'a [T]> { // '
     let mut i = 0u;
     for c in initial.iter() {
         if predicate(c) { i += 1; } else { break; }
@@ -38,15 +63,6 @@ fn take_while1<'a>(initial: &'a [u8], predicate: |&u8| -> bool) -> Option<&'a [u
         0 => None,
         _ => Some(initial.slice_to(i)),
     }
-}
-
-/// Implementaton using pure iterators
-fn take_while2<'a>(initial: &'a [u8], 
-                   predicate: |&u8| -> bool) -> Option<&'a [u8]> {
-    initial
-        .chunks(1)
-        .take_while(|x|(predicate(&x[0])))
-        .fold(None, splice_for_fold)
 }
 
 // TODO see if there is also some implementation using scan...
