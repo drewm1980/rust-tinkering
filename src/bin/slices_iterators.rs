@@ -40,15 +40,8 @@ fn take_while1<'a>(initial: &'a [u8], predicate: |&u8| -> bool) -> Option<&'a [u
     }
 }
 
-/// Implementaton using iterators internally, with internal collect
-fn take_while2<'a>(initial: &'a [u8], predicate: |&u8| -> bool) -> Option<&'a [u8]> { // '
-    let v:Vec<&'a[u8]> = initial.chunks(1).take_while(|x|(predicate(&x[0]))).collect();
-    //v.iter().fold(None, splice_for_fold)
-    Some(v[0])
-}
-
 /// Implementaton using pure iterators
-fn take_while3<'a>(initial: &'a [u8], 
+fn take_while2<'a>(initial: &'a [u8], 
                    predicate: |&u8| -> bool) -> Option<&'a [u8]> {
     initial
         .chunks(1)
@@ -56,7 +49,7 @@ fn take_while3<'a>(initial: &'a [u8],
         .fold(None, splice_for_fold)
 }
 
-// Maybe there is also some implementation using scan...
+// TODO see if there is also some implementation using scan...
 
 #[cfg(test)]
 mod test {
@@ -109,7 +102,6 @@ mod test {
     fn test_all_take_while() {
         let functions = vec![super::take_while1,
         super::take_while2,
-        super::take_while3,
             ];
         for i in range(0,functions.len())
             {
