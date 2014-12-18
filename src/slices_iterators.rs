@@ -6,7 +6,7 @@ use std::num::Int;
 /// Panics if the slices aren't contiguous with "a" coming first.
 /// Also panics in some improbable cases of arrays so large they overflow int.
 /// i.e. slice b must follow slice a immediately in memory.
-fn splice<'a, T>(a: &'a [T], b: &'a [T]) -> &'a [T] {
+pub fn splice<'a, T>(a: &'a [T], b: &'a [T]) -> &'a [T] {
     unsafe {
         let aa: Slice<T> = transmute(a);
         let bb: Slice<T> = transmute(b);
@@ -35,7 +35,7 @@ fn splice<'a, T>(a: &'a [T], b: &'a [T]) -> &'a [T] {
 
 /// Wrapper around splice that lets you use None as a base case for fold
 /// Will panic if the slices cannot be spliced!  See splice.
-fn splice_for_fold<'a,T>(oa:Option<&'a[T]>, b:&'a[T]) -> Option<&'a[T]> {
+pub fn splice_for_fold<'a,T>(oa:Option<&'a[T]>, b:&'a[T]) -> Option<&'a[T]> {
    match oa {
        Some(a) => Some(splice(a,b)),
        None => Some(b),
@@ -54,7 +54,7 @@ fn take_while1<'a,T>(initial: &'a [T],
 /// A C style implementation of take_while for slices.
 /// This implementation does NOT return another iterator!
 /// Returns None if none of the initial elements of the slice satisfy the predicate.
-fn take_while2<'a,T>(initial: &'a [T], predicate: |&T| -> bool) -> Option<&'a [T]> { // '
+pub fn take_while2<'a,T>(initial: &'a [T], predicate: |&T| -> bool) -> Option<&'a [T]> { // '
     let mut i = 0u;
     for c in initial.iter() {
         if predicate(c) { i += 1; } else { break; }
@@ -65,10 +65,38 @@ fn take_while2<'a,T>(initial: &'a [T], predicate: |&T| -> bool) -> Option<&'a [T
     }
 }
 
+/// Split a slice into two consecutive slices.
+/// All of the elements of the first slice match the predicate.
+/// Kinda like take while, but gives you the remainder too.
+pub fn split_while<'a,T>(initial:&'a[T], predicate:|&T|->bool) -> (Option<&'a[T]>,Option<&'a[T]>) {
+    let mut i = 0u;
+    for c in initial.iter() {
+        if predicate(c) { i += 1; } else { break; }
+    }
+    match i {
+        0 => (None,Some(initial)),
+        i if i<initial.len() => (Some(initial.slice_to(i)),Some(initial.slice_from(i))),
+        i if i==initial.len() => (Some(initial),None),
+        _ => unreachable!(),
+    }
+}
+
+
 // TODO see if there is also some implementation using scan...
 
 #[cfg(test)]
 mod test {
+    use super::{split_while,splice};
+
+    #[test]
+    fn test_split_while() {
+        let v:Vec<int> = vec![1,2,3,4,5,6];
+        let (s1,s2) = split_while(v.as_slice(), |&x| x<4);
+        assert!(s1.unwrap().len()==3);
+        assert!(s2.unwrap().len()==3);
+        assert!(s1 == Some(v[..3]));
+        assert!(s2 == Some(v[3..]));
+    }
 
     #[test]
     fn test_splice() {
