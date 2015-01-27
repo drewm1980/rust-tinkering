@@ -1,3 +1,8 @@
+#![allow(dead_code)]
+#![allow(unused_variables)]
+#![allow(unstable)]
+
+#![feature(slicing_syntax)]
 
 // Rexport stuff so I can use it in other projects
 pub use slices_iterators::splice;

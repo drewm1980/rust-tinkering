@@ -1,6 +1,7 @@
 use std::raw::Slice;
 use std::mem::{transmute, size_of};
 use std::num::Int;
+use std::num::ToPrimitive;
 
 /// Splice together to slices of the same type that are contiguous in memory.
 /// Panics if the slices aren't contiguous with "a" coming first.
@@ -43,8 +44,8 @@ pub fn splice_for_fold<'a,T>(oa:Option<&'a[T]>, b:&'a[T]) -> Option<&'a[T]> {
 }
 
 /// Implementaton using pure iterators
-fn take_while1<'a,T>(initial: &'a [T], 
-                   predicate: |&T| -> bool) -> Option<&'a [T]> {
+fn take_while1<'a,T,F:Fn(&T)->bool>(initial: &'a [T], 
+                   predicate: F) -> Option<&'a [T]> {
     initial
         .chunks(1)
         .take_while(|x|(predicate(&x[0])))
@@ -54,35 +55,32 @@ fn take_while1<'a,T>(initial: &'a [T],
 /// A C style implementation of take_while for slices.
 /// This implementation does NOT return another iterator!
 /// Returns None if none of the initial elements of the slice satisfy the predicate.
-pub fn take_while2<'a,T>(initial: &'a [T], predicate: |&T| -> bool) -> Option<&'a [T]> { // '
-    let mut i = 0u;
+pub fn take_while2<'a,T,F:Fn(&T)->bool >(initial: &'a [T], predicate: F) -> Option<&'a [T]> { // '
+    let mut i = 0us;
     for c in initial.iter() {
         if predicate(c) { i += 1; } else { break; }
     }
     match i {
         0 => None,
-        _ => Some(initial.slice_to(i)),
+        _ => Some(&initial[..i]),
     }
 }
 
 /// Split a slice into two consecutive slices.
 /// All of the elements of the first slice match the predicate.
 /// Kinda like take while, but gives you the remainder too.
-pub fn split_while<'a,T>(initial:&'a[T], predicate:|&T|->bool) -> (Option<&'a[T]>,Option<&'a[T]>) {
-    let mut i = 0u;
+pub fn split_while<'a,T,F:Fn(&T)->bool >(initial:&'a[T], predicate: F) -> (Option<&'a[T]>,Option<&'a[T]>) {
+    let mut i = 0us;
     for c in initial.iter() {
         if predicate(c) { i += 1; } else { break; }
     }
     match i {
         0 => (None,Some(initial)),
-        i if i<initial.len() => (Some(initial.slice_to(i)),Some(initial.slice_from(i))),
+        i if i<initial.len() => (Some(&initial[..i]),Some(&initial[i..])),
         i if i==initial.len() => (Some(initial),None),
         _ => unreachable!(),
     }
 }
-
-
-// TODO see if there is also some implementation using scan...
 
 #[cfg(test)]
 mod test {
@@ -90,35 +88,32 @@ mod test {
 
     #[test]
     fn test_split_while() {
-        let v:Vec<int> = vec![1,2,3,4,5,6];
+        let v:Vec<u32> = vec![1,2,3,4,5,6];
         let (s1,s2) = split_while(v.as_slice(), |&x| x<4);
         assert!(s1.unwrap().len()==3);
         assert!(s2.unwrap().len()==3);
-        assert!(s1 == Some(v[..3]));
-        assert!(s2 == Some(v[3..]));
+        assert!(s1 == Some(&v[..3]));
+        assert!(s2 == Some(&v[3..]));
     }
 
     #[test]
     fn test_splice() {
         let s = b"12345678";
-        let a = s.slice_to(4);
-        let b = s.slice_from(4);
-        println!("a: {} b: {}", a, b);
-        let c = super::splice(a,b);
+        let a = &s[..4];
+        let b = &s[4..];
+        let c : &[u8] = super::splice(a,b);
         let d = s.as_slice();
-        println!("c: {}", c);
         assert!(c==d, "Slices didn't join back up somehow!");
     }
 
     #[test]
     fn test_splice_for_fold() {
         let s = b"12345678";
-        let a = s.slice_to(4);
-        let b = s.slice_from(4);
+        let a = &s[..4];
+        let b = &s[4..];
 
         let pa = [a]; // Not sure why this is needed for the borrow checker...
         let i1 = pa.iter().map(|&x|(x));
-        //let i1 = [a].iter().cloned();
         let fa = i1.fold(None,super::splice_for_fold).expect("why u no fold?");
         assert!(fa==a);
 
@@ -130,32 +125,14 @@ mod test {
     fn test_eager_take_while() {
         const STRHELLO:&'static[u8] = b"HHHello";
         let subslice: &[u8] = super::take_while1(STRHELLO, |c|(*c==b'H')).unwrap();
-        println!("Expecting: {}, Got {}",STRHELLO.slice_to(3), subslice);
-        assert!(subslice == STRHELLO.slice_to(3));
+        assert!(subslice == &STRHELLO[..3]);
     }
 
     #[test]
     fn test_take_while2() {
         const STRHELLO:&'static[u8] = b"HHHello";
         let subslice: &[u8] = super::take_while2(STRHELLO, |c|(*c==b'H')).unwrap();
-        println!("Expecting: {}, Got {}",STRHELLO.slice_to(3), subslice);
-        assert!(subslice == STRHELLO.slice_to(3));
-    }
-
-    #[test]
-    fn test_all_take_while() {
-        let functions = vec![super::take_while1,
-        super::take_while2,
-            ];
-        for i in range(0,functions.len())
-            {
-                println!("Testing implementation {}...",i);
-                let take_while = functions[i];
-                const STRHELLO:&'static[u8] = b"HHHello";
-                let subslice: &[u8] = take_while(STRHELLO, |c|(*c==b'H')).unwrap();
-                println!("Expecting: {}, Got {}",STRHELLO.slice_to(3), subslice);
-                assert!(subslice == STRHELLO.slice_to(3),"Failed in {}");
-            }
+        assert!(subslice == &STRHELLO[..3]);
     }
 
 }
